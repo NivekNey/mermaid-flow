@@ -13,8 +13,8 @@
 
   function getNodeStyle(isDark: boolean) {
       return isDark 
-        ? 'background: #1f2937; border: 1px solid #4b5563; color: #f3f4f6; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: all 0.2s;' 
-        : 'background: white; border: 1px solid #777; color: black; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: all 0.2s;';
+        ? 'background: #1f2937; border: 1px solid #4b5563; color: #f3f4f6; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: background-color 0.2s, color 0.2s, border-color 0.2s;' 
+        : 'background: white; border: 1px solid #777; color: black; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: background-color 0.2s, color 0.2s, border-color 0.2s;';
   }
 
   function getEdgeParams(isDark: boolean) {
