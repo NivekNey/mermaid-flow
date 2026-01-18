@@ -46,5 +46,11 @@ Tailwind v4's Vite plugin is aggressive about scanning files. If a dependency is
 ```
 
 ## Testing Workflow
+- **Mandate:** For every bug report, first create or update a test that reproduces the failure. Ensure the test fails, then implement the fix, and verify with the test.
 - **Runner:** Playwright (`npx playwright test`).
 - **Debugging:** If Playwright fails with "Internal Server Error" or timeouts, **manually run `npm run dev`**. The CLI output from the dev server often contains the actual build/runtime error that Playwright swallows or obscures.
+
+## Svelte 5 & XYFlow Insights
+- **Deep Reactivity:** When using `$effect` to sync deep objects (like `positions`), ensure the object is accessed in a way that Svelte tracks it. Moving serialization/iteration logic *inside* the effect (before any `setTimeout`) is the most reliable way to ensure deep tracking.
+- **Event Handlers:** In `@xyflow/svelte` (v1+ for Svelte 5), use standard Svelte 5 event props (e.g., `onNodeDragStop={handler}`) rather than lowercase `on...`. The payload is often an object `{ event, node, nodes }` directly, not a `CustomEvent` with `detail`.
+- **Performance:** Avoid `transition: all` on nodes as it animates `transform` changes during drag, causing significant visual lag. Explicitly transition only the properties that need it (background, color, etc.).
