@@ -62,7 +62,8 @@
             position: positions[n.id] || { x: 0, y: 0 },
             data: { label: n.label },
             style: style,
-            type: 'default'
+            type: 'default',
+            connectable: false
         }));
         
         edges = rawEdges.map(e => ({
