@@ -10,7 +10,7 @@ export type SerializedState = [
 	number,
 	string,
 	Record<string, [number, number]>,
-	[number, number]
+	[number, number, number] // themeId, directionId, layoutVersion
 ];
 
 export interface AppState {
@@ -18,6 +18,7 @@ export interface AppState {
 	positions: Record<string, [number, number]>;
 	themeId: number;
 	directionId: number;
+	layoutVersion: number;
 }
 
 // --- State ---
@@ -26,7 +27,8 @@ const currentState = $state<AppState>({
 	code: 'graph TD\n  A[Start] --> B[End]',
 	positions: {},
 	themeId: 0,
-	directionId: 0
+	directionId: 0,
+	layoutVersion: 0
 });
 
 const syncState = $state({ isTooLarge: false });
@@ -62,7 +64,7 @@ function serialize(state: AppState): string {
 		1,
 		snapshot.code,
 		snapshot.positions,
-		[snapshot.themeId, snapshot.directionId]
+		[snapshot.themeId, snapshot.directionId, snapshot.layoutVersion]
 	];
 	const packed = packer.pack(tuple);
 	const compressed = pako.deflate(packed);
@@ -79,7 +81,8 @@ function deserialize(hash: string): Partial<AppState> | null {
 			code: tuple[1],
 			positions: tuple[2],
 			themeId: tuple[3][0],
-			directionId: tuple[3][1]
+			directionId: tuple[3][1],
+			layoutVersion: tuple[3][2]
 		};
 	} catch (err) {
 		return null;
@@ -102,6 +105,7 @@ export function init() {
 			}
 			currentState.themeId = restored.themeId ?? currentState.themeId;
 			currentState.directionId = restored.directionId ?? currentState.directionId;
+			currentState.layoutVersion = restored.layoutVersion ?? currentState.layoutVersion;
 		}
 	}
 

@@ -59,6 +59,7 @@ export async function calculateLayout(
             const [x, y] = existingPositions[node.id];
             positions[node.id] = { x, y };
         } else {
+            // Always use ELK calculated position when no existing position
             positions[node.id] = { x: node.x ?? 0, y: node.y ?? 0 };
         }
       }

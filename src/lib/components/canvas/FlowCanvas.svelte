@@ -17,13 +17,6 @@
   let edges: Edge[] = $state([]);
   let debounceTimer: ReturnType<typeof setTimeout>;
 
-  function getNodeStyle(isDark: boolean) {
-      const base = 'padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: background-color 0.2s, color 0.2s, border-color 0.2s;';
-      return isDark 
-        ? `background: #1f2937; border: 1px solid #4b5563; color: #f3f4f6; ${base}` 
-        : `background: white; border: 1px solid #777; color: black; ${base}`;
-  }
-
   function getEdgeParams(isDark: boolean) {
       const color = isDark ? '#9ca3af' : '#777';
       return {
@@ -32,43 +25,48 @@
       };
   }
 
-  // Layout Effect: Triggered when code changes
+  // Layout Effect: Triggered when code or layoutVersion changes
   $effect(() => {
+    // Force reactivity tracking by accessing the properties
     const code = currentState.code;
+    const version = currentState.layoutVersion;
+    const positions = currentState.positions;
     
     // Clear previous timer
     if (debounceTimer) clearTimeout(debounceTimer);
 
+    // Use shorter debounce for layout reset to feel more responsive
+    const debounceMs = Object.keys(positions).length === 0 ? 100 : 300;
+
     // Debounce the parsing and layout
     debounceTimer = setTimeout(async () => {
         const result = await parseMermaid(code);
-        if (!result) return; // Ignore invalid code
+        if (!result) return;
 
         const { nodes: rawNodes, edges: rawEdges, direction } = result;
         const isDark = untrack(() => theme.isDark);
-        
-        // We untrack positions here because we only want to re-run layout when the structure (code) changes
-        const currentPositions = untrack(() => currentState.positions);
+        const currentPositions = untrack(() => $state.snapshot(currentState.positions));
 
         const layoutPositions = await calculateLayout(
             rawNodes.map(n => ({ id: n.id, position: { x: 0, y: 0 }, data: { label: n.label }, width: 150, height: 50 })),
-            rawEdges.map(e => ({ id: e.id, source: e.source, target: e.target })),
+            rawEdges.map((e: any) => ({ id: e.id, source: e.source, target: e.target })),
             currentPositions,
             { direction: direction as any }
         );
 
-        const style = getNodeStyle(isDark);
         const edgeParams = getEdgeParams(isDark);
 
-        nodes = rawNodes.map(n => ({
-            id: n.id,
+        const newNodes = rawNodes.map(n => ({
+            id: n.id, // Keep original ID for edge linking
             position: layoutPositions[n.id] || { x: 0, y: 0 },
-            data: { label: n.label, shape: n.shape },
+            data: { label: n.label, shape: n.shape, updateKey: `${n.id}-${n.label}` }, // Add update key for reactivity
             type: 'mermaid',
             connectable: false
         }));
         
-        edges = rawEdges.map(e => ({
+        nodes = newNodes;
+        
+        edges = rawEdges.map((e: any) => ({
             id: e.id,
             source: e.source,
             target: e.target,
@@ -76,7 +74,7 @@
             type: 'default',
             ...edgeParams
         }));
-    }, 300); // 300ms debounce
+    }, debounceMs);
 
     return () => {
         if (debounceTimer) clearTimeout(debounceTimer);
@@ -87,9 +85,7 @@
   $effect(() => {
       const isDark = theme.isDark;
       untrack(() => {
-          const style = getNodeStyle(isDark);
           const edgeParams = getEdgeParams(isDark);
-          nodes = nodes.map(n => ({ ...n, style }));
           edges = edges.map(e => ({ ...e, ...edgeParams }));
       });
   });
@@ -97,7 +93,6 @@
   function onNodeDragStop(payload: any) {
       const targetNode = payload.targetNode;
       if (targetNode) {
-          // Update the global state
           currentState.positions[targetNode.id] = [targetNode.position.x, targetNode.position.y];
       }
   }
@@ -111,6 +106,7 @@
         onnodedragstop={onNodeDragStop}
         colorMode={theme.isDark ? 'dark' : 'light'}
         fitView
+        
         class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200"
     >
         <Background />

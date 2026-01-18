@@ -53,3 +53,31 @@ Tailwind v4's Vite plugin is aggressive about scanning files.
 
 ## Safety & Efficiency
 - **File Overwrites:** Avoid using `replace` for complex multi-line blocks. Prefer `write_file` for critical module structures to prevent accidental code deletion during automated edits.
+
+## Bug Fixes & Reflections
+
+### Code Editor Reactivity Issue (Fixed)
+**Problem:** Code editor changes weren't triggering diagram re-renders reliably.
+**Root Cause:** SvelteFlow wasn't detecting node label changes because node IDs remained the same, causing component reuse without proper reactivity.
+**Solution:** 
+- Added explicit property access (`const code = currentState.code; const version = currentState.layoutVersion; const positions = currentState.positions;`) to force Svelte 5 reactivity tracking
+- Used `$state.snapshot()` when passing positions to external libraries per the Snapshot Rule
+- **Key Fix:** Added `updateKey` to node data containing `${nodeId}-${label}` to force MermaidNode component re-rendering when labels change
+- Fixed TypeScript errors with proper type annotations
+
+### Reset Layout Jankiness (Fixed)
+**Problem:** Reset layout felt sluggish and inconsistent.
+**Root Cause:** Fixed 300ms debounce regardless of context, and layout service wasn't optimally handling cleared positions.
+**Solution:**
+- Implemented adaptive debounce: 100ms when positions are empty (reset scenario), 300ms otherwise
+- Improved layout service to always use ELK calculated positions when no existing positions exist
+- Ensured proper state synchronization by tracking `layoutVersion` changes
+
+### SvelteFlow + Svelte 5 Reactivity Pattern
+**Critical Insight:** When using SvelteFlow with Svelte 5, node components may not re-render if only the data changes but the node ID stays the same. 
+**Solution Pattern:** Include a unique `updateKey` in the node data that combines the original ID with values that should trigger re-renders (like labels).
+
+### Testing Insights
+- Created comprehensive test suite covering both issues
+- Tests validate rapid code changes, layout reset responsiveness, and state persistence
+- All existing tests continue to pass, ensuring no regression

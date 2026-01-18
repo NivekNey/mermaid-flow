@@ -29,7 +29,11 @@
     
     <div class="flex items-center gap-2">
       <button 
-        onclick={() => { currentState.positions = {}; }}
+        onclick={() => { 
+          // Clear positions and increment version to force re-layout
+          currentState.positions = {}; 
+          currentState.layoutVersion += 1;
+        }}
         class="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors flex items-center gap-1.5 text-xs font-medium"
         title="Reset Node Positions"
       >
