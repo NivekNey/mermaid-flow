@@ -5,13 +5,24 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), svelte()],
+  plugins: [svelte(), tailwindcss()],
   resolve: {
     alias: {
       '$app/environment': path.resolve(process.cwd(), 'src/mocks/app-environment.ts')
     }
   },
   optimizeDeps: {
-    exclude: ['svelte-splitpanes']
+    esbuildOptions: {
+      plugins: [
+        {
+          name: 'load-app-environment',
+          setup(build) {
+            build.onResolve({ filter: /^\$app\/environment$/ }, args => ({
+              path: path.resolve(process.cwd(), 'src/mocks/app-environment.ts'),
+            }))
+          },
+        },
+      ],
+    },
   }
 })
