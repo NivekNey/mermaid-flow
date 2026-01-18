@@ -29,6 +29,7 @@ Tailwind v4's Vite plugin is aggressive about scanning files.
 ## Testing Workflow
 - **Runner:** Playwright (`npx playwright test`).
 - **Debugging:** If Playwright fails with "Internal Server Error" or timeouts, **manually run `npm run dev`**. Use `page.on('console', msg => console.log('BROWSER:', msg.text()))` in tests to see browser logs.
+- **Tailwind v4 Colors:** Tailwind v4 uses `oklch` by default. When asserting colors in Playwright (e.g., `toHaveCSS('fill', ...)`), be prepared to handle both `rgb()` and `oklch()` formats, especially for dark mode colors. Use regex in assertions to be flexible.
 
 ## Svelte 5 & State Management Insights
 - **The Snapshot Rule:** External libraries (e.g., `msgpackr`, `pako`, `elkjs`) do not understand Svelte 5 Proxies. Always use `$state.snapshot(object)` before passing state to an external function or serializing it.

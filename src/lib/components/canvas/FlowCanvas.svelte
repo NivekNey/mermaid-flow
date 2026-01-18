@@ -7,6 +7,11 @@
   import { theme } from '../../state/theme.svelte';
   import { parseMermaid } from '../../utils/mermaid-parser';
   import { calculateLayout } from '../../layout/elk-service';
+  import MermaidNode from './MermaidNode.svelte';
+
+  const nodeTypes = {
+    mermaid: MermaidNode
+  };
 
   let nodes: Node[] = $state([]);
   let edges: Edge[] = $state([]);
@@ -39,7 +44,7 @@
         const result = await parseMermaid(code);
         if (!result) return; // Ignore invalid code
 
-        const { nodes: rawNodes, edges: rawEdges } = result;
+        const { nodes: rawNodes, edges: rawEdges, direction } = result;
         const isDark = untrack(() => theme.isDark);
         
         // We untrack positions here because we only want to re-run layout when the structure (code) changes
@@ -48,7 +53,8 @@
         const layoutPositions = await calculateLayout(
             rawNodes.map(n => ({ id: n.id, position: { x: 0, y: 0 }, data: { label: n.label }, width: 150, height: 50 })),
             rawEdges.map(e => ({ id: e.id, source: e.source, target: e.target })),
-            currentPositions
+            currentPositions,
+            { direction: direction as any }
         );
 
         const style = getNodeStyle(isDark);
@@ -57,9 +63,8 @@
         nodes = rawNodes.map(n => ({
             id: n.id,
             position: layoutPositions[n.id] || { x: 0, y: 0 },
-            data: { label: n.label },
-            style,
-            type: 'default',
+            data: { label: n.label, shape: n.shape },
+            type: 'mermaid',
             connectable: false
         }));
         
@@ -67,6 +72,7 @@
             id: e.id,
             source: e.source,
             target: e.target,
+            label: e.label,
             type: 'default',
             ...edgeParams
         }));
@@ -101,6 +107,7 @@
     <SvelteFlow 
         bind:nodes 
         bind:edges 
+        {nodeTypes}
         onnodedragstop={onNodeDragStop}
         colorMode={theme.isDark ? 'dark' : 'light'}
         fitView

@@ -4,8 +4,16 @@ import type { Node, Edge } from '@xyflow/svelte';
 const elk = new ELK();
 
 export interface LayoutOptions {
-  direction?: 'DOWN' | 'RIGHT' | 'UP' | 'LEFT';
+  direction?: 'TB' | 'TD' | 'BT' | 'RL' | 'LR';
 }
+
+const directionMap: Record<string, string> = {
+  'TB': 'DOWN',
+  'TD': 'DOWN',
+  'BT': 'UP',
+  'LR': 'RIGHT',
+  'RL': 'LEFT'
+};
 
 export async function calculateLayout(
   nodes: Node[],
@@ -13,14 +21,14 @@ export async function calculateLayout(
   existingPositions: Record<string, [number, number]>,
   options: LayoutOptions = {}
 ): Promise<Record<string, { x: number; y: number }>> {
-  const direction = options.direction === 'RIGHT' ? 'RIGHT' : 'DOWN';
+  const elkDirection = directionMap[options.direction || 'TD'] || 'DOWN';
   
   // Construct the graph for ELK
   const graph = {
     id: 'root',
     layoutOptions: {
       'elk.algorithm': 'layered',
-      'elk.direction': direction,
+      'elk.direction': elkDirection,
       'elk.spacing.nodeNode': '50',
       'elk.layered.spacing.nodeNodeBetweenLayers': '50',
     },

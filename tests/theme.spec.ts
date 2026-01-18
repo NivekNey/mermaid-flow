@@ -49,13 +49,18 @@ test.describe('Theme & Visibility', () => {
     const startNode = page.getByText('Start', { exact: true });
     await expect(startNode).toBeVisible();
     
-    // Check if the node has the dark mode background color
-    // We set it to #1f2937 in FlowCanvas.svelte, which converts to rgb(31, 41, 55)
-    // Note: The element with the background color is likely the parent .svelte-flow__node-default
-    const nodeElement = page.locator('.svelte-flow__node-default').first();
-    await expect(nodeElement).toHaveCSS('background-color', 'rgb(31, 41, 55)');
+    // Check if the node has the dark mode styles
+    // Custom nodes have the class .svelte-flow__node-mermaid
+    const nodeElement = page.locator('.svelte-flow__node-mermaid').first();
     
-    // Check text color #f3f4f6 -> rgb(243, 244, 246)
-    await expect(nodeElement).toHaveCSS('color', 'rgb(243, 244, 246)');
+    // In our implementation, the container background is transparent
+    // and the shape is an SVG with a fill color.
+    // dark:fill-gray-800 is rgb(31, 41, 55) or oklch(0.278 0.033 256.848)
+    const shape = nodeElement.locator('rect, circle, path').first();
+    await expect(shape).toHaveCSS('fill', /(rgb\(31, 41, 55\)|oklch\(0\.278)/);
+    
+    // Check text color #f3f4f6 -> rgb(243, 244, 246) or oklch(0.96...)
+    // This is passed via the 'style' prop to the node container
+    await expect(nodeElement).toHaveCSS('color', /(rgb\(243, 244, 246\)|oklch\(0\.9[67])/);
   });
 });

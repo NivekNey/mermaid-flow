@@ -5,7 +5,7 @@
   // import Splitpanes from './lib/mocks/Splitpanes.svelte';
   import CodeEditor from './lib/components/editor/CodeEditor.svelte';
   import FlowCanvas from './lib/components/canvas/FlowCanvas.svelte';
-  import { syncState, init as initUrlStore } from './lib/state/url-store.svelte';
+  import { currentState, syncState, init as initUrlStore } from './lib/state/url-store.svelte';
   import { theme } from './lib/state/theme.svelte';
 
   initUrlStore();
@@ -28,6 +28,15 @@
     </div>
     
     <div class="flex items-center gap-2">
+      <button 
+        onclick={() => { currentState.positions = {}; }}
+        class="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors flex items-center gap-1.5 text-xs font-medium"
+        title="Reset Node Positions"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        <span class="hidden sm:inline">Reset Layout</span>
+      </button>
+
       <button 
         onclick={theme.toggle}
         class="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
