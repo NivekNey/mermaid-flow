@@ -1,5 +1,10 @@
 # Developer Guide for Agents & Humans
 
+## Core Philosophy: Reflection
+**Reflection** is the process of analyzing a completed task to identify friction points, architectural misunderstandings, or workflow inefficiencies. Every significant bug or feature should result in an update to this document to ensure the system "learns" from its mistakes.
+- **Mandate:** For every bug report, first create or update a test that reproduces the failure. Ensure the test fails, then implement the fix, and verify with the test.
+- **Mandate:** After a fix, reflect on *why* the bug was missed or why the first attempt failed, and document the generalized insight here.
+
 ## Project Architecture
 - **Framework:** Svelte 5 (Runes) + Vite (SPA mode, NOT SvelteKit).
 - **Styling:** Tailwind CSS v4.
@@ -14,43 +19,26 @@ Many Svelte libraries (e.g., `svelte-splitpanes`) assume they are running in Sve
 **The Fix:**
 - **Mock File:** Create a mock implementation (e.g., `src/mocks/app-environment.ts`).
 - **Vite Config:** Alias the import in `resolve.alias`.
-- **Esbuild Config (CRITICAL):** You MUST also add a custom esbuild plugin in `optimizeDeps.esbuildOptions.plugins` to handle the alias during dependency pre-bundling. Without this, esbuild will fail to resolve the mock, causing the optimization to fail and forcing Vite to serve raw files (which breaks other tools like Tailwind).
-
-```typescript
-// vite.config.ts
-optimizeDeps: {
-  esbuildOptions: {
-    plugins: [
-      {
-        name: 'load-app-environment',
-        setup(build) {
-          build.onResolve({ filter: /^\$app\/environment$/ }, args => ({
-            path: path.resolve(process.cwd(), 'src/mocks/app-environment.ts'),
-          }))
-        },
-      },
-    ],
-  },
-}
-```
+- **Esbuild Config (CRITICAL):** You MUST also add a custom esbuild plugin in `optimizeDeps.esbuildOptions.plugins` to handle the alias during dependency pre-bundling.
 
 ### 2. Tailwind CSS v4 & Node Modules
-Tailwind v4's Vite plugin is aggressive about scanning files. If a dependency is not pre-bundled (see point #1) and contains syntax that looks like CSS or is ambiguous, Tailwind might crash with "Invalid declaration".
+Tailwind v4's Vite plugin is aggressive about scanning files. 
 **The Fix:**
 - Explicitly define sources in `src/app.css` using `@source` directives to restrict scanning to your source code.
 
-```css
-@import "tailwindcss";
-@source "../src";
-@source "../index.html";
-```
-
 ## Testing Workflow
-- **Mandate:** For every bug report, first create or update a test that reproduces the failure. Ensure the test fails, then implement the fix, and verify with the test.
 - **Runner:** Playwright (`npx playwright test`).
-- **Debugging:** If Playwright fails with "Internal Server Error" or timeouts, **manually run `npm run dev`**. The CLI output from the dev server often contains the actual build/runtime error that Playwright swallows or obscures.
+- **Debugging:** If Playwright fails with "Internal Server Error" or timeouts, **manually run `npm run dev`**. Use `page.on('console', msg => console.log('BROWSER:', msg.text()))` in tests to see browser logs.
 
-## Svelte 5 & XYFlow Insights
-- **Deep Reactivity:** When using `$effect` to sync deep objects (like `positions`), ensure the object is accessed in a way that Svelte tracks it. Moving serialization/iteration logic *inside* the effect (before any `setTimeout`) is the most reliable way to ensure deep tracking.
-- **Event Handlers:** In `@xyflow/svelte` (v1+ for Svelte 5), use standard Svelte 5 event props (e.g., `onNodeDragStop={handler}`) rather than lowercase `on...`. The payload is often an object `{ event, node, nodes }` directly, not a `CustomEvent` with `detail`.
-- **Performance:** Avoid `transition: all` on nodes as it animates `transform` changes during drag, causing significant visual lag. Explicitly transition only the properties that need it (background, color, etc.).
+## Svelte 5 & State Management Insights
+- **The Snapshot Rule:** External libraries (e.g., `msgpackr`, `pako`, `elkjs`) do not understand Svelte 5 Proxies. Always use `$state.snapshot(object)` before passing state to an external function or serializing it.
+- **Deep Reactivity Sync:** To ensure Svelte tracks deep object mutations (e.g., `obj.a.b = val`), iterate or serialize the object *synchronously* inside the `$effect` before any asynchronous calls like `setTimeout`.
+- **Effect Location:** To ensure a state-sync effect is always active, define it at the module level inside an `$effect.root(() => { ... })`.
+
+## XYFlow (Svelte Flow) Integration
+- **Event Prop Naming:** In `@xyflow/svelte` (Svelte 5 version), use standard Svelte 5 lowercase props for events (e.g., `onnodedragstop={handler}`).
+- **Event Payload:** Handlers receive a single object payload (e.g., `{ event, targetNode, nodes }`).
+- **Performance:** Avoid `transition: all` on nodes as it animates `transform` changes during drag, causing visual lag. Transition only specific properties (background, color, etc.).
+
+## Safety & Efficiency
+- **File Overwrites:** Avoid using `replace` for complex multi-line blocks. Prefer `write_file` for critical module structures to prevent accidental code deletion during automated edits.
