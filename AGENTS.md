@@ -40,5 +40,15 @@ Tailwind v4's Vite plugin is aggressive about scanning files.
 - **Event Payload:** Handlers receive a single object payload (e.g., `{ event, targetNode, nodes }`).
 - **Performance:** Avoid `transition: all` on nodes as it animates `transform` changes during drag, causing visual lag. Transition only specific properties (background, color, etc.).
 
+## Library-Specific Gotchas
+
+### Mermaid.js (v10+)
+- **Async API:** Most parsing methods (like `getDiagramFromText`) are `async`.
+- **Internal DB:** In `flowchart-v2`, `diagram.db.vertices` and `diagram.db.edges` are often `Map` objects. They will appear empty in `JSON.stringify` and must be converted (e.g., `Array.from(map.values())`) before use or serialization.
+- **Validation:** Always wrap `mermaid.parse(code)` in a try/catch before attempting to extract data to avoid unhandled promise rejections on invalid syntax.
+
+### ELKjs
+- **Integrity:** ELK will throw a `JsonImportException` if an edge references a node ID that is not present in the `children` array. Always validate that the node set and edge set are consistent before calling `elk.layout()`.
+
 ## Safety & Efficiency
 - **File Overwrites:** Avoid using `replace` for complex multi-line blocks. Prefer `write_file` for critical module structures to prevent accidental code deletion during automated edits.

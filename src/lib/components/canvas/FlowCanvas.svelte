@@ -5,11 +5,12 @@
   import '@xyflow/svelte/dist/style.css';
   import { currentState } from '../../state/url-store.svelte';
   import { theme } from '../../state/theme.svelte';
-  import { parseMermaid } from '../../utils/simple-parser';
+  import { parseMermaid } from '../../utils/mermaid-parser';
   import { calculateLayout } from '../../layout/elk-service';
 
   let nodes: Node[] = $state([]);
   let edges: Edge[] = $state([]);
+  let debounceTimer: ReturnType<typeof setTimeout>;
 
   function getNodeStyle(isDark: boolean) {
       const base = 'padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: background-color 0.2s, color 0.2s, border-color 0.2s;';
@@ -29,17 +30,27 @@
   // Layout Effect: Triggered when code changes
   $effect(() => {
     const code = currentState.code;
-    const { nodes: rawNodes, edges: rawEdges } = parseMermaid(code);
-    const isDark = untrack(() => theme.isDark);
     
-    // We untrack positions here because we only want to re-run layout when the structure (code) changes
-    const currentPositions = untrack(() => currentState.positions);
+    // Clear previous timer
+    if (debounceTimer) clearTimeout(debounceTimer);
 
-    calculateLayout(
-        rawNodes.map(n => ({ id: n.id, position: { x: 0, y: 0 }, data: { label: n.label }, width: 150, height: 50 })),
-        rawEdges.map(e => ({ id: e.id, source: e.source, target: e.target })),
-        currentPositions
-    ).then(layoutPositions => {
+    // Debounce the parsing and layout
+    debounceTimer = setTimeout(async () => {
+        const result = await parseMermaid(code);
+        if (!result) return; // Ignore invalid code
+
+        const { nodes: rawNodes, edges: rawEdges } = result;
+        const isDark = untrack(() => theme.isDark);
+        
+        // We untrack positions here because we only want to re-run layout when the structure (code) changes
+        const currentPositions = untrack(() => currentState.positions);
+
+        const layoutPositions = await calculateLayout(
+            rawNodes.map(n => ({ id: n.id, position: { x: 0, y: 0 }, data: { label: n.label }, width: 150, height: 50 })),
+            rawEdges.map(e => ({ id: e.id, source: e.source, target: e.target })),
+            currentPositions
+        );
+
         const style = getNodeStyle(isDark);
         const edgeParams = getEdgeParams(isDark);
 
@@ -59,7 +70,11 @@
             type: 'default',
             ...edgeParams
         }));
-    });
+    }, 300); // 300ms debounce
+
+    return () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+    };
   });
 
   // Theme update effect
