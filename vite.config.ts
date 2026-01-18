@@ -17,7 +17,7 @@ export default defineConfig({
         {
           name: 'load-app-environment',
           setup(build) {
-            build.onResolve({ filter: /^\$app\/environment$/ }, args => ({
+            build.onResolve({ filter: /^\$app\/environment$/ }, _args => ({
               path: path.resolve(process.cwd(), 'src/mocks/app-environment.ts'),
             }))
           },

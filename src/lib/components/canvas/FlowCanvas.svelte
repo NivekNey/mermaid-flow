@@ -1,23 +1,103 @@
 <script lang="ts">
+  import { SvelteFlow, Background, Controls, useSvelteFlow } from '@xyflow/svelte';
+  import type { Node, Edge } from '@xyflow/svelte';
+  import { untrack } from 'svelte';
+  import '@xyflow/svelte/dist/style.css';
   import { currentState } from '../../state/url-store.svelte';
+  import { theme } from '../../state/theme.svelte';
+  import { parseMermaid } from '../../utils/simple-parser';
+  import { calculateLayout } from '../../layout/elk-service';
+
+  let nodes: Node[] = $state([]);
+  let edges: Edge[] = $state([]);
+
+  function getNodeStyle(isDark: boolean) {
+      return isDark 
+        ? 'background: #1f2937; border: 1px solid #4b5563; color: #f3f4f6; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: all 0.2s;' 
+        : 'background: white; border: 1px solid #777; color: black; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: all 0.2s;';
+  }
+
+  // Effect 1: Sync code -> visual graph (Layout)
+  $effect(() => {
+    const code = currentState.code;
+    const { nodes: rawNodes, edges: rawEdges } = parseMermaid(code);
+    
+    // Capture theme dependency synchronously but without tracking
+    // This ensures layout only re-runs when code changes, not when theme changes
+    const isDark = untrack(() => theme.isDark);
+
+    // Calculate layout, respecting existing positions
+    calculateLayout(
+        rawNodes.map(n => ({ 
+            id: n.id, 
+            position: { x: 0, y: 0 }, 
+            data: { label: n.label },
+            width: 150, 
+            height: 50 
+        })),
+        rawEdges.map(e => ({ 
+            id: e.id, 
+            source: e.source, 
+            target: e.target 
+        })),
+        currentState.positions
+    ).then(positions => {
+        const style = getNodeStyle(isDark);
+
+        nodes = rawNodes.map(n => ({
+            id: n.id,
+            position: positions[n.id] || { x: 0, y: 0 },
+            data: { label: n.label },
+            style: style,
+            type: 'default'
+        }));
+        
+        edges = rawEdges.map(e => ({
+            id: e.id,
+            source: e.source,
+            target: e.target,
+            type: 'default',
+            animated: true
+        }));
+    });
+  });
+
+  // Effect 2: Update styles when theme changes (without re-layout)
+  $effect(() => {
+      const isDark = theme.isDark;
+      
+      untrack(() => {
+          if (nodes.length > 0) {
+              const style = getNodeStyle(isDark);
+              nodes = nodes.map(n => ({
+                  ...n,
+                  style
+              }));
+          }
+      });
+  });
+
+  function onNodeDragStop(event: any) {
+      // The event detail contains the node that was dragged
+      // Check event structure - usually event.detail.node
+      const draggedNode = event.detail.node;
+      if (draggedNode) {
+          currentState.positions[draggedNode.id] = [draggedNode.position.x, draggedNode.position.y];
+      }
+  }
 </script>
 
-<div class="h-full w-full bg-gray-50 text-gray-900 p-4 relative overflow-hidden flex items-center justify-center">
-  <div class="absolute inset-0 bg-grid-slate-200 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]"></div>
-  
-  <div class="relative z-10 text-center">
-    <h2 class="text-xl mb-2 font-bold">Flow Canvas</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Visualization will appear here</p>
-    
-    <div class="bg-white dark:bg-gray-800 p-4 rounded shadow border border-gray-200 dark:border-gray-700 max-w-md mx-auto text-left overflow-auto max-h-60">
-      <pre class="text-xs">{currentState.code}</pre>
-    </div>
-  </div>
+<div class="h-full w-full bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <SvelteFlow 
+        bind:nodes 
+        bind:edges 
+        onnodedragstop={onNodeDragStop}
+        colorMode={theme.isDark ? 'dark' : 'light'}
+        fitView
+        minZoom={0.1}
+        class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200"
+    >
+        <Background />
+        <Controls />
+    </SvelteFlow>
 </div>
-
-<style>
-  /* Simple grid pattern for background */
-  .bg-grid-slate-200 {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='1'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v-1h9v-9h1v9z'/%3E%3Cpath opacity='.5' d='M41 40h4v1h-4v4h-1v-4h-9v-1h9v-9h1v9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  }
-</style>

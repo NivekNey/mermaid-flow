@@ -13,7 +13,7 @@ test.describe('Milestone 1: Foundation', () => {
     
     // Check for split panes
     await expect(page.getByText('Code Editor')).toBeVisible();
-    await expect(page.getByText('Flow Canvas')).toBeVisible();
+    await expect(page.locator('.svelte-flow')).toBeVisible();
   });
 
   test('should handle theme toggling', async ({ page }) => {

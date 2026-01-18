@@ -43,7 +43,7 @@
       </button>
       
       <a 
-        href="https://github.com/kevinyen/mermaid-flow" 
+        href="https://github.com/NivekNey/mermaid-flow" 
         target="_blank" 
         rel="noreferrer"
         class="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
