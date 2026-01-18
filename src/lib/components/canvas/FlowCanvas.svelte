@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SvelteFlow, Background, Controls, useSvelteFlow } from '@xyflow/svelte';
+  import { SvelteFlow, Background, Controls, useSvelteFlow, MarkerType } from '@xyflow/svelte';
   import type { Node, Edge } from '@xyflow/svelte';
   import { untrack } from 'svelte';
   import '@xyflow/svelte/dist/style.css';
@@ -15,6 +15,17 @@
       return isDark 
         ? 'background: #1f2937; border: 1px solid #4b5563; color: #f3f4f6; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: all 0.2s;' 
         : 'background: white; border: 1px solid #777; color: black; padding: 10px; border-radius: 5px; width: 150px; text-align: center; transition: all 0.2s;';
+  }
+
+  function getEdgeParams(isDark: boolean) {
+      const color = isDark ? '#9ca3af' : '#777';
+      return {
+          style: `stroke: ${color}`,
+          markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: color
+          }
+      };
   }
 
   // Effect 1: Sync code -> visual graph (Layout)
@@ -43,6 +54,7 @@
         currentState.positions
     ).then(positions => {
         const style = getNodeStyle(isDark);
+        const edgeParams = getEdgeParams(isDark);
 
         nodes = rawNodes.map(n => ({
             id: n.id,
@@ -57,7 +69,7 @@
             source: e.source,
             target: e.target,
             type: 'default',
-            animated: true
+            ...edgeParams
         }));
     });
   });
@@ -72,6 +84,14 @@
               nodes = nodes.map(n => ({
                   ...n,
                   style
+              }));
+          }
+
+          if (edges.length > 0) {
+              const edgeParams = getEdgeParams(isDark);
+              edges = edges.map(e => ({
+                  ...e,
+                  ...edgeParams
               }));
           }
       });
