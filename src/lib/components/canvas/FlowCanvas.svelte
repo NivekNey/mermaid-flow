@@ -36,6 +36,7 @@
     // Capture theme dependency synchronously but without tracking
     // This ensures layout only re-runs when code changes, not when theme changes
     const isDark = untrack(() => theme.isDark);
+    const existingPositions = untrack(() => currentState.positions);
 
     // Calculate layout, respecting existing positions
     calculateLayout(
@@ -51,7 +52,7 @@
             source: e.source, 
             target: e.target 
         })),
-        currentState.positions
+        existingPositions
     ).then(positions => {
         const style = getNodeStyle(isDark);
         const edgeParams = getEdgeParams(isDark);
